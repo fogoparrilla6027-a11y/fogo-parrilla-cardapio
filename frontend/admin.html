@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Fogo Parrilla</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .admin-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .admin-tab { padding: 0.6rem 1.2rem; background: var(--bg-card); border: 1px solid rgba(201,160,99,0.2); color: var(--text-muted); border-radius: 8px; cursor: pointer; font-family: var(--font-body); transition: all 0.2s; }
+    .admin-tab:hover, .admin-tab.active { background: var(--gold); color: var(--primary); border-color: var(--gold); }
+    .admin-section { display: none; }
+    .admin-section.active { display: block; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: var(--bg-card); border: 1px solid rgba(201,160,99,0.1); border-radius: 12px; padding: 1.25rem; text-align: center; }
+    .stat-value { font-family: var(--font-mono); font-size: 1.8rem; color: var(--gold); font-weight: 700; }
+    .stat-label { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.3rem; }
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th { text-align: left; padding: 0.6rem 0.8rem; font-size: 0.8rem; color: var(--text-muted); border-bottom: 1px solid rgba(201,160,99,0.1); text-transform: uppercase; letter-spacing: 1px; }
+    .data-table td { padding: 0.6rem 0.8rem; border-bottom: 1px solid rgba(201,160,99,0.05); font-size: 0.85rem; }
+    .data-table tr:hover { background: var(--bg-card); }
+    .table-wrap { overflow-x: auto; }
+    .toolbar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+    .toolbar input, .toolbar select { padding: 0.5rem 0.8rem; background: var(--bg); border: 1px solid rgba(201,160,99,0.2); border-radius: 8px; color: var(--text); font-size: 0.85rem; }
+    .toolbar input:focus, .toolbar select:focus { outline: none; border-color: var(--gold); }
+    .toggle { position: relative; width: 44px; height: 24px; display: inline-block; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #555; border-radius: 24px; transition: 0.3s; }
+    .toggle-slider::before { content: ''; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
+    .toggle input:checked + .toggle-slider { background: var(--success); }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+  </style>
+</head>
+<body>
+  <header class="hero" style="padding:1rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
+      <div class="hero-logo" style="font-size:1.5rem;">Fogo <span>Parrilla</span> <span style="font-size:0.7rem;color:var(--text-muted);font-family:var(--font-body);">Admin</span></div>
+      <div>
+        <span id="adminUser" style="font-size:0.8rem;color:var(--text-muted);margin-right:1rem;"></span>
+        <button class="btn btn-secondary" onclick="logout()">Sair</button>
+        <a href="/" class="btn btn-primary" style="text-decoration:none;">⟵ Site</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="admin-tabs" id="adminTabs">
+      <button class="admin-tab active" data-tab="dashboard">📊 Dashboard</button>
+      <button class="admin-tab" data-tab="orders">📋 Pedidos</button>
+      <button class="admin-tab" data-tab="products">🍖 Cardápio</button>
+      <button class="admin-tab" data-tab="categories">📁 Categorias</button>
+      <button class="admin-tab" data-tab="pix">💳 PIX</button>
+      <button class="admin-tab" data-tab="store">🏪 Loja</button>
+    </div>
+
+    <div id="adminDashboard" class="admin-section active"></div>
+    <div id="adminOrders" class="admin-section"></div>
+    <div id="adminProducts" class="admin-section"></div>
+    <div id="adminCategories" class="admin-section"></div>
+    <div id="adminPix" class="admin-section"></div>
+    <div id="adminStore" class="admin-section"></div>
+  </div>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>
