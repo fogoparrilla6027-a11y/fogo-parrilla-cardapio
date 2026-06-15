@@ -15,6 +15,7 @@ app.use('/api/products', require('./routes/products'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/pix', require('./routes/pix'));
+app.use('/api/upload', require('./routes/upload'));
 
 app.get('/api/store', async (req, res) => {
   try {

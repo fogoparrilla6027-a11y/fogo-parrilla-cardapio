@@ -31,9 +31,12 @@ function renderAllCategories() {
       <div id="cat-${cat.id}" class="category-section">
         <h2 class="section-title"><span class="icon">${cat.icon}</span>${cat.name}</h2>
         <div class="product-grid">
-          ${catProducts.map(p => `
+            ${catProducts.map(p => `
             <div class="product-card ${p.featured ? 'featured' : ''}" onclick="addToCart(${JSON.stringify(p).replace(/"/g, '&quot;')})">
               ${p.featured ? '<div class="product-badge">🔥 Destaque</div>' : ''}
+              <div class="product-img">
+                ${p.image ? `<img src="${p.image}" alt="${p.name}">` : `<div class="product-img-placeholder">${(categories.find(c => c.id === p.categoryId)?.icon || '🍖')}</div>`}
+              </div>
               <div class="product-name">${p.name}</div>
               <div class="product-desc">${p.description}</div>
               <div class="product-footer">
