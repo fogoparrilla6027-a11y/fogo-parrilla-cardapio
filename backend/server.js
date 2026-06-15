@@ -1,6 +1,8 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const db = require('./database');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -14,12 +16,20 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/pix', require('./routes/pix'));
 
-app.get('/api/store', (req, res) => {
-  const db = require('./database');
-  const data = db.load();
-  res.json(data.store);
+app.get('/api/store', async (req, res) => {
+  try {
+    const store = await db.getStoreConfig();
+    res.json(store);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.listen(PORT, () => {
-  console.log(`🔥 Fogo Parrilla rodando em http://localhost:${PORT}`);
+db.initDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🔥 Fogo Parrilla rodando em http://localhost:${PORT}`);
+  });
+}).catch(e => {
+  console.error('[DB] Erro ao iniciar:', e.message);
+  process.exit(1);
 });

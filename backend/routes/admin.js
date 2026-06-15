@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { load, save } = require('../database');
+const db = require('../database');
 const { authMiddleware } = require('./auth');
 
 function adminOnly(req, res, next) {
@@ -8,98 +8,116 @@ function adminOnly(req, res, next) {
   next();
 }
 
-router.get('/dashboard', authMiddleware, adminOnly, (req, res) => {
-  const db = load();
-  const totalOrders = db.orders.length;
-  const pendingOrders = db.orders.filter(o => o.status === 'pendente').length;
-  const totalRevenue = db.orders.reduce((sum, o) => sum + o.total, 0);
-  const recentOrders = db.orders.slice(0, 10);
-  res.json({ totalOrders, pendingOrders, totalRevenue, recentOrders });
+router.get('/dashboard', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const orders = await db.getAllOrders();
+    const totalOrders = orders.length;
+    const pendingOrders = orders.filter(o => o.status === 'pendente').length;
+    const totalRevenue = orders.reduce((s, o) => s + parseFloat(o.total), 0);
+    res.json({ totalOrders, pendingOrders, totalRevenue, recentOrders: orders.slice(0, 10) });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-router.get('/orders', authMiddleware, adminOnly, (req, res) => {
-  const db = load();
-  res.json(db.orders);
+router.get('/orders', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const orders = await db.getAllOrders();
+    res.json(orders);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-router.put('/orders/:id/status', authMiddleware, adminOnly, (req, res) => {
-  const db = load();
-  const order = db.orders.find(o => o.id === req.params.id);
-  if (!order) return res.status(404).json({ error: 'Pedido não encontrado' });
-  order.status = req.body.status;
-  save(db);
-  res.json(order);
+router.put('/orders/:id/status', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    await db.updateOrderStatus(req.params.id, req.body.status);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-router.get('/products', authMiddleware, adminOnly, (req, res) => {
-  const db = load();
-  res.json(db.products);
+router.get('/products', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const products = await db.getProducts();
+    res.json(products);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-router.post('/products', authMiddleware, adminOnly, (req, res) => {
-  const db = load();
-  const maxId = Math.max(...db.products.map(p => p.id), 0);
-  const product = { id: maxId + 1, ...req.body, available: true };
-  db.products.push(product);
-  save(db);
-  res.json(product);
+router.post('/products', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const product = await db.createProduct(req.body);
+    res.json(product);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-router.put('/products/:id', authMiddleware, adminOnly, (req, res) => {
-  const db = load();
-  const idx = db.products.findIndex(p => p.id === parseInt(req.params.id));
-  if (idx === -1) return res.status(404).json({ error: 'Produto não encontrado' });
-  Object.assign(db.products[idx], req.body);
-  save(db);
-  res.json(db.products[idx]);
+router.put('/products/:id', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    await db.updateProduct(parseInt(req.params.id), req.body);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-router.delete('/products/:id', authMiddleware, adminOnly, (req, res) => {
-  const db = load();
-  const idx = db.products.findIndex(p => p.id === parseInt(req.params.id));
-  if (idx === -1) return res.status(404).json({ error: 'Produto não encontrado' });
-  db.products.splice(idx, 1);
-  save(db);
-  res.json({ success: true });
+router.delete('/products/:id', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    await db.deleteProduct(parseInt(req.params.id));
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-router.get('/categories', authMiddleware, adminOnly, (req, res) => {
-  const db = load();
-  res.json(db.categories);
+router.get('/categories', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const cats = await db.getCategories();
+    res.json(cats);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-router.post('/categories', authMiddleware, adminOnly, (req, res) => {
-  const db = load();
-  const maxId = Math.max(...db.categories.map(c => c.id), 0);
-  const cat = { id: maxId + 1, ...req.body };
-  db.categories.push(cat);
-  save(db);
-  res.json(cat);
+router.post('/categories', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const cat = await db.createCategory(req.body);
+    res.json(cat);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-router.put('/categories/:id', authMiddleware, adminOnly, (req, res) => {
-  const db = load();
-  const idx = db.categories.findIndex(c => c.id === parseInt(req.params.id));
-  if (idx === -1) return res.status(404).json({ error: 'Categoria não encontrada' });
-  Object.assign(db.categories[idx], req.body);
-  save(db);
-  res.json(db.categories[idx]);
+router.put('/categories/:id', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    await db.updateCategory(parseInt(req.params.id), req.body);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-router.delete('/categories/:id', authMiddleware, adminOnly, (req, res) => {
-  const db = load();
-  const idx = db.categories.findIndex(c => c.id === parseInt(req.params.id));
-  if (idx === -1) return res.status(404).json({ error: 'Categoria não encontrada' });
-  db.categories.splice(idx, 1);
-  save(db);
-  res.json({ success: true });
+router.delete('/categories/:id', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    await db.deleteCategory(parseInt(req.params.id));
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-router.put('/store', authMiddleware, adminOnly, (req, res) => {
-  const db = load();
-  Object.assign(db.store, req.body);
-  save(db);
-  res.json(db.store);
+router.put('/store', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    await db.updateStoreConfig(req.body);
+    const store = await db.getStoreConfig();
+    res.json(store);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 module.exports = router;

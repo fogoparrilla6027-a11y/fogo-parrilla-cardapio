@@ -1,58 +1,69 @@
 const express = require('express');
 const router = express.Router();
-const { load, save } = require('../database');
+const db = require('../database');
 const { authMiddleware } = require('./auth');
 
-router.post('/', authMiddleware, (req, res) => {
-  const db = load();
-  const { items, paymentMethod, deliveryAddress, changeFor, observation } = req.body;
-  if (!items || !items.length) return res.status(400).json({ error: 'Carrinho vazio' });
-  const user = db.users.find(u => u.id === req.user.id);
-  if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
-  const orderItems = items.map(item => {
-    const product = db.products.find(p => p.id === item.productId);
-    return {
-      productId: product.id,
-      name: product.name,
-      price: product.price,
-      quantity: item.quantity,
-      total: product.price * item.quantity
+router.post('/', authMiddleware, async (req, res) => {
+  try {
+    const { items, paymentMethod, deliveryAddress, changeFor, observation } = req.body;
+    if (!items || !items.length) return res.status(400).json({ error: 'Carrinho vazio' });
+    const user = await db.getUserById(req.user.id);
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+    const store = await db.getStoreConfig();
+    const orderItems = [];
+    for (const item of items) {
+      const product = await db.getProductById(item.productId);
+      if (!product) continue;
+      orderItems.push({
+        productId: product.id,
+        name: product.name,
+        price: parseFloat(product.price),
+        quantity: item.quantity,
+        total: parseFloat(product.price) * item.quantity
+      });
+    }
+    if (!orderItems.length) return res.status(400).json({ error: 'Nenhum produto válido' });
+    const subtotal = orderItems.reduce((s, i) => s + i.total, 0);
+    const deliveryFee = deliveryAddress ? parseFloat(store.delivery_fee) : 0;
+    const id = Date.now().toString(36) + Math.random().toString(36).substr(2, 4);
+    const order = {
+      id,
+      userId: req.user.id,
+      userName: user.name,
+      items: orderItems,
+      subtotal,
+      deliveryFee,
+      total: subtotal + deliveryFee,
+      paymentMethod,
+      deliveryAddress,
+      changeFor: paymentMethod === 'dinheiro' ? changeFor : null,
+      observation,
+      status: 'pendente'
     };
-  });
-  const subtotal = orderItems.reduce((sum, i) => sum + i.total, 0);
-  const deliveryFee = deliveryAddress ? db.store.delivery_fee : 0;
-  const total = subtotal + deliveryFee;
-  const order = {
-    id: Date.now().toString(36) + Math.random().toString(36).substr(2, 4),
-    userId: req.user.id,
-    userName: user.name,
-    items: orderItems,
-    subtotal,
-    deliveryFee,
-    total,
-    paymentMethod,
-    deliveryAddress,
-    changeFor: paymentMethod === 'dinheiro' ? changeFor : null,
-    observation,
-    status: 'pendente',
-    createdAt: new Date().toISOString()
-  };
-  db.orders.unshift(order);
-  save(db);
-  res.json(order);
+    await db.createOrder(order);
+    res.json(order);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-router.get('/', authMiddleware, (req, res) => {
-  const db = load();
-  const orders = db.orders.filter(o => o.userId === req.user.id);
-  res.json(orders);
+router.get('/', authMiddleware, async (req, res) => {
+  try {
+    const orders = await db.getOrdersByUser(req.user.id);
+    res.json(orders);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-router.get('/:id', authMiddleware, (req, res) => {
-  const db = load();
-  const order = db.orders.find(o => o.id === req.params.id && o.userId === req.user.id);
-  if (!order) return res.status(404).json({ error: 'Pedido não encontrado' });
-  res.json(order);
+router.get('/:id', authMiddleware, async (req, res) => {
+  try {
+    const order = await db.getOrderById(req.params.id);
+    if (!order || order.user_id !== req.user.id) return res.status(404).json({ error: 'Pedido não encontrado' });
+    res.json(order);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 module.exports = router;

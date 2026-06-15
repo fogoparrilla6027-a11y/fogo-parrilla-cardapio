@@ -1,32 +1,42 @@
 const express = require('express');
 const router = express.Router();
-const { load } = require('../database');
+const db = require('../database');
 
-router.get('/', (req, res) => {
-  const db = load();
-  const { category } = req.query;
-  let products = db.products;
-  if (category) {
-    products = products.filter(p => p.categoryId === parseInt(category) || p.categoryId === category);
+router.get('/', async (req, res) => {
+  try {
+    const products = await db.getProducts(req.query.category);
+    res.json(products);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
-  res.json(products);
 });
 
-router.get('/categories', (req, res) => {
-  const db = load();
-  res.json(db.categories);
+router.get('/categories', async (req, res) => {
+  try {
+    const categories = await db.getCategories();
+    res.json(categories);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-router.get('/featured', (req, res) => {
-  const db = load();
-  res.json(db.products.filter(p => p.featured && p.available));
+router.get('/featured', async (req, res) => {
+  try {
+    const products = await db.getFeaturedProducts();
+    res.json(products);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-router.get('/:id', (req, res) => {
-  const db = load();
-  const product = db.products.find(p => p.id === parseInt(req.params.id));
-  if (!product) return res.status(404).json({ error: 'Produto não encontrado' });
-  res.json(product);
+router.get('/:id', async (req, res) => {
+  try {
+    const product = await db.getProductById(parseInt(req.params.id));
+    if (!product) return res.status(404).json({ error: 'Produto não encontrado' });
+    res.json(product);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 module.exports = router;
